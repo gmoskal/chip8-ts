@@ -36,30 +36,30 @@ describe("opcodes", () => {
 
     describe("Conditional opcodes", () => {
         it("runs next instruction when VX are not equal", () => {
-            opcodes.skipNextEqual(0x30ff)
+            opcodes.skipIfNNEq(0x30ff)
             expect(state.pc).toEqual(0x202)
         })
         it("skips next instruction when VX are equal", () => {
-            opcodes.skipNextEqual(0x3000)
+            opcodes.skipIfNNEq(0x3000)
             expect(state.pc).toEqual(0x204)
         })
 
         it("runs next instruction when VX are equal", () => {
-            opcodes.skipNextNotEqual(0x30ff)
+            opcodes.skipIfNNNotEq(0x30ff)
             expect(state.pc).toEqual(0x204)
         })
         it("skips next instruction when VX are not equal", () => {
-            opcodes.skipNextNotEqual(0x3000)
+            opcodes.skipIfNNNotEq(0x3000)
             expect(state.pc).toEqual(0x202)
         })
 
         it("skips next instruction if V[X] === V[Y]", () => {
-            opcodes.skipNextIfVEqual(0x5010)
+            opcodes.skipIfVyEq(0x5010)
             expect(state.pc).toEqual(0x204)
         })
         it("runs next instruction if V[X] === V[Y]", () => {
             initWithV({ 1: 108 })
-            opcodes.skipNextIfVEqual(0x5010)
+            opcodes.skipIfVyEq(0x5010)
             expect(state.pc).toEqual(0x202)
         })
     })
