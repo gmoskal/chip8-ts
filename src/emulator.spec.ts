@@ -33,6 +33,7 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x123)
         })
     })
+
     describe("Conditional opcodes", () => {
         it("runs next instruction when VX are not equal", () => {
             opcodes.skipNextEqual(0x30ff)
@@ -59,6 +60,34 @@ describe("opcodes", () => {
         it("runs next instruction if V[X] === V[Y]", () => {
             initWithV({ 1: 108 })
             opcodes.skipNextIfVEqual(0x5010)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("Cond opcodes", () => {
+        it("Sets Vx to NN.", () => {
+            opcodes.setNN(0x61fa)
+            expect(state.V[1]).toEqual(0xfa)
+            expect(state.pc).toEqual(0x202)
+            opcodes.setNN(0x610f)
+            expect(state.V[1]).toEqual(0x0f)
+        })
+
+        it("Adds NN to Vx.", () => {
+            expect(state.V[1]).toEqual(0)
+            opcodes.addNN(0x71f0)
+            expect(state.V[1]).toEqual(0xf0)
+
+            expect(state.pc).toEqual(0x202)
+            opcodes.addNN(0x710f)
+            expect(state.V[1]).toEqual(0xff)
+            expect(state.pc).toEqual(0x204)
+        })
+
+        it("Sets Vx to Vy.", () => {
+            initWithV({ 1: 108 })
+            opcodes.setVy(0x8010)
+            expect(state.V[0]).toEqual(108)
             expect(state.pc).toEqual(0x202)
         })
     })
