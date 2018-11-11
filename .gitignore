@@ -1,0 +1,15 @@
+.DS_Store
+yarn.lock
+yarn-error.log
+node_modules
+dist
+.env
+npm-debug.log
+coverage
+**/*.log
+**/*.swp
+**/*.map
+*~
+cypress/screenshots
+cypress/integration/mailslurp-key.json
+cypress/support/dw-books-test-firebase-adminsdk.json

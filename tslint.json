@@ -1,0 +1,63 @@
+{
+    "rules": {
+        "class-name": true,
+        "no-var-keyword": true,
+        "no-use-before-declare": false,
+        "no-console": [
+            true
+        ],
+        "no-reference": true,
+        "no-internal-module": true,
+        "no-arg": true,
+        "no-bitwise": false,
+        "no-conditional-assignment": true,
+        "no-construct": true,
+        "no-debugger": true,
+        "no-duplicate-variable": true,
+        "no-empty": true,
+        "no-eval": true,
+        "interface-name": [true, "never-prefix"],
+
+        "no-invalid-this": [
+            true,
+            "check-function-in-method"
+        ],
+        "no-string-literal": true,
+        "no-switch-case-fall-through": true,
+        "triple-equals": [
+            true,
+            "allow-undefined-check",
+            "allow-null-check"
+        ],
+        "object-literal-sort-keys": false,
+        "member-access": [true, "no-public"],
+        "ordered-imports":false,
+        "no-submodule-imports": false,
+        "curly":false,
+        "interface-over-type-literal": false,
+        "switch-default": false,
+        "use-isnan": true,
+        "ban-types" :[true],
+        "variable-name": [true, "ban-keywords",
+            "check-format",
+            "allow-leading-underscore",
+            "allow-pascal-case",
+            "allow-snake-case"],
+        "max-line-length": [
+            true,
+            120
+        ],
+        "max-file-line-count": [
+            true,
+            260
+        ],
+        "no-implicit-dependencies": [true, "dev"],
+        "member-ordering": [true, "statics-first"]
+
+    },
+    "extends": [
+        "tslint:latest",
+        "tslint-config-prettier",
+        "tslint-consistent-codestyle"
+      ]
+}

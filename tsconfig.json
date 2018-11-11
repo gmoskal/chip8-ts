@@ -1,0 +1,43 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "module": "commonjs",
+        "target": "es5",
+        "jsx": "react",
+        "allowSyntheticDefaultImports": true,
+        "noEmitHelpers": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "types": [
+            "jest"
+        ],
+        "lib": [
+            "dom",
+            "es2015.promise",
+            "es2015"
+        ],
+        "typeRoots": [
+            "src/@types/"
+        ],
+        "baseUrl": "./",
+        "paths": {
+            "*": [
+                "src/@types/*",
+                "*"
+            ]
+        },
+    },
+    "allowJS": false,
+    "include": [
+        "**/*.d.ts",
+        "**/*.tsx",
+        "**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/*",
+        "scripts",
+        "cypress"
+    ]
+}
