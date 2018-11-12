@@ -211,4 +211,21 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x202)
         })
     })
+
+    describe(">>=", () => {
+        it("1101 (0xd) >> 1 -> 110 (0x6) and VX = 1", () => {
+            initWithV({ 0: 0xd })
+            opcodes.shiftRight(0x8006)
+            expect(state.V[0]).toEqual(6)
+            expect(state.V[0xf]).toEqual(1)
+            expect(state.pc).toEqual(0x202)
+        })
+        it("(0xff) >> 1 -> 0111 111 (0x7f) and VX = 0", () => {
+            initWithV({ 0: 0xfe })
+            opcodes.shiftRight(0x8006)
+            expect(state.V[0]).toEqual(0x7f)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
 })
