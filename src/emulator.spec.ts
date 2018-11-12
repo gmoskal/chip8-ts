@@ -175,4 +175,40 @@ describe("opcodes", () => {
             })
         })
     })
+
+    describe("AddVy", () => {
+        it("Adds VY to VX and VF and sets Vf to 0 (no carry)", () => {
+            initWithV({ 1: 0xf })
+            opcodes.addVy(0x8014)
+            expect(state.V[0]).toEqual(0xf)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
+        })
+
+        it("Adds VY to VX and sets Vf to 1 (a carry).", () => {
+            initWithV({ 0: 0xff, 1: 0x1 })
+            opcodes.addVy(0x8014)
+            expect(state.V[0]).toEqual(0xff + 0x1)
+            expect(state.V[0xf]).toEqual(1)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("SubVy", () => {
+        it("Subs Vx from VX and sets VF to 1 (no borrow).", () => {
+            initWithV({ 0: 0xf, 1: 0xe })
+            opcodes.subVy(0x8015)
+            expect(state.V[0]).toEqual(0x1)
+            expect(state.V[0xf]).toEqual(1)
+            expect(state.pc).toEqual(0x202)
+        })
+
+        it("Adds VY to VX and VF is set to 1 if there's a carry.", () => {
+            initWithV({ 0: 0x0, 1: 0x1 })
+            opcodes.subVy(0x8015)
+            expect(state.V[0]).toEqual(-1)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
 })

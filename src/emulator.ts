@@ -5,6 +5,7 @@ export let state = {
     V: new Array(16).fill(0)
 }
 type State = typeof state
+
 export const init = (delta: Partial<State> = {}) =>
     (state = { sp: 0, pc: 0x200, V: new Array(16).fill(0), stack: new Array(16).fill(0), ...delta })
 
@@ -47,11 +48,13 @@ export const opcodes = {
     andVy: (oc: number) => setVx(oc, (vx, vy) => vx & vy),
     xorVy: (oc: number) => setVx(oc, (vx, vy) => vx ^ vy),
     addVy: (oc: number) => {
-        state.V[0xf] = Vy(oc) > 0x00ff - Vx(oc) ? 1 : 0
         setVx(oc, (vx, vy) => vx + vy)
+        state.V[0xf] = +(Vx(oc) > 255)
+        // if (Vx(oc) > 255) state.V[X(oc)] -= 256
     },
     subVy: (oc: number) => {
-        state.V[0xf] = Vy(oc) > Vx(oc) ? 1 : 0
+        state.V[0xf] = +(Vx(oc) > Vy(oc))
         setVx(oc, (vx, vy) => vx - vy)
+        // if (Vx(oc) < 0) state.V[X(oc)] += 256
     }
 }
