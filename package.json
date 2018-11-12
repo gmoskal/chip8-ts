@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx jest"
+    "test": "npx jest",
+    "lint": "npx tslint --project tsconfig.json  --format stylish"
   },
   "author": "",
   "license": "ISC",
