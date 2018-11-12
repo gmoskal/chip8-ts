@@ -91,4 +91,88 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x202)
         })
     })
+
+    describe("Bitwise opcodes", () => {
+        describe("OR", () => {
+            it("0 | 0", () => {
+                opcodes.orVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+
+            it("0 | f", () => {
+                initWithV({ 1: 0xf })
+                opcodes.orVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+            it("e | 1", () => {
+                initWithV({ 0: 0xe, 1: 1 })
+                opcodes.orVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+
+            it("f | f", () => {
+                initWithV({ 0: 0xf, 1: 0xf })
+                opcodes.orVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+        })
+
+        describe("AND", () => {
+            it("0 | 0", () => {
+                opcodes.andVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+
+            it("0 | f", () => {
+                initWithV({ 1: 0xf })
+                opcodes.andVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+            it("f | 0", () => {
+                initWithV({ 0: 0xf })
+                opcodes.andVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+            it("f | f", () => {
+                initWithV({ 0: 0xf, 1: 0xf })
+                opcodes.andVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+        })
+
+        describe("XOR", () => {
+            it("0 | 0", () => {
+                opcodes.xorVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+
+            it("0 | f", () => {
+                initWithV({ 1: 0xf })
+                opcodes.xorVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+            it("f | 0", () => {
+                initWithV({ 0: 0xf })
+                opcodes.xorVy(0x8011)
+                expect(state.V[0]).toEqual(0xf)
+                expect(state.pc).toEqual(0x202)
+            })
+            it("f | f", () => {
+                initWithV({ 0: 0xf, 1: 0xf })
+                opcodes.xorVy(0x8011)
+                expect(state.V[0]).toEqual(0)
+                expect(state.pc).toEqual(0x202)
+            })
+        })
+    })
 })
