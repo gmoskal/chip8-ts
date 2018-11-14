@@ -61,5 +61,14 @@ export const opcodes = {
         state.V[0xf] = Vx(oc) & 0x1
         state.V[X(oc)] >>= 1
         state.pc += 2
+    },
+    shiftLeft: (oc: number) => {
+        state.V[0xf] = Vx(oc) & 0xf0
+        state.V[X(oc)] <<= 1
+        state.pc += 2
+    },
+    setVySubVx: (oc: number) => {
+        state.V[0xf] = +(Vy(oc) > Vx(oc))
+        setVx(oc, (vx, vy) => vy - vx)
     }
 }

@@ -228,4 +228,21 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x202)
         })
     })
+
+    describe("Vx = Vy - Vx", () => {
+        it("no borrow case", () => {
+            initWithV({ 0: 0x1, 1: 0x2 })
+            opcodes.setVySubVx(0x8017)
+            expect(state.V[0]).toEqual(0x1)
+            expect(state.V[0xf]).toEqual(1)
+            expect(state.pc).toEqual(0x202)
+        })
+        it("borrow case", () => {
+            initWithV({ 0: 0x2, 1: 0x1 })
+            opcodes.setVySubVx(0x8017)
+            expect(state.V[0]).toEqual(-1)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
 })
