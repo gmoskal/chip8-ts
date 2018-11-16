@@ -2,7 +2,10 @@ import { opcodes, init, state } from "./emulator"
 
 const initWithV = (delta: NMap<number>) =>
     init({ V: new Array(16).fill(0).map((_, i) => (delta[i] !== undefined ? delta[i] : 0)) })
-
+declare var global: any
+const mockMath = Object.create(global.Math)
+mockMath.random = () => 0.5
+global.Math = mockMath
 describe("opcodes", () => {
     beforeEach(() => init())
 
@@ -28,9 +31,15 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x123)
         })
 
-        it("Goto to address", () => {
-            opcodes.goto(0x1123)
+        it("Goto to NNN", () => {
+            opcodes.gotoNNN(0x1123)
             expect(state.pc).toEqual(0x123)
+        })
+
+        it("Goto to V0 + NNN", () => {
+            initWithV({ 0: 1 })
+            opcodes.gotoV0PlusNNN(0xb123)
+            expect(state.pc).toEqual(0x123 + 1)
         })
     })
 
@@ -232,17 +241,29 @@ describe("opcodes", () => {
     describe("Vx = Vy - Vx", () => {
         it("no borrow case", () => {
             initWithV({ 0: 0x1, 1: 0x2 })
-            opcodes.setVySubVx(0x8017)
+            opcodes.setVyMinusVx(0x8017)
             expect(state.V[0]).toEqual(0x1)
             expect(state.V[0xf]).toEqual(1)
             expect(state.pc).toEqual(0x202)
         })
         it("borrow case", () => {
             initWithV({ 0: 0x2, 1: 0x1 })
-            opcodes.setVySubVx(0x8017)
+            opcodes.setVyMinusVx(0x8017)
             expect(state.V[0]).toEqual(-1 + 256)
             expect(state.V[0xf]).toEqual(0)
             expect(state.pc).toEqual(0x202)
         })
     })
+    describe("Rand", () => {
+        it("gives random value & 0x00", () => {
+            opcodes.randAndNN(0xc100)
+            expect(state.V[1]).toEqual(0)
+        })
+        it("gives random value & 0xff", () => {
+            opcodes.randAndNN(0xc1ff)
+            expect(state.V[1]).toEqual(127)
+        })
+    })
+
+    // tslint:disable-next-line:max-file-line-count
 })
