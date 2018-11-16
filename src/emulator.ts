@@ -1,39 +1,33 @@
-import { chars } from "./consts"
+import { chars, keys } from "./consts"
 
 const getArray = (size: number): number[] => new Array(size).fill(0)
 
-const display = {
-    width: 64,
-    height: 32,
-    content: getArray(64 * 32)
-}
+const pressedKeys = (): NMap<boolean> => keys.reduce((acc, _, ind) => ({ ...acc, [ind]: false }), {})
 
-export let state = {
-    sp: 0,
-    I: 0,
-    pc: 0x200,
-    stack: getArray(16),
-    V: getArray(16),
-    display,
-    isDrawing: false,
-    memory: new Uint8Array(new ArrayBuffer(0x1000))
-}
-
-export const init = (delta: Partial<typeof state> = {}) => {
+export let initialState = () => {
     const memory = new Uint8Array(new ArrayBuffer(0x1000)).fill(0)
     memory.set(chars)
-    state = {
+    return {
         sp: 0,
-        pc: 0x200,
-        V: getArray(16),
-        isDrawing: false,
-        display,
         I: 0,
-        memory,
+        pc: 0x200,
         stack: getArray(16),
-        ...delta
+        memory,
+        pressedKeys: pressedKeys(),
+        V: getArray(16),
+        display: {
+            width: 64,
+            height: 32,
+            content: getArray(64 * 32)
+        },
+        isDrawing: false
     }
 }
+
+type State = ReturnType<typeof initialState>
+export let state = initialState()
+
+export const init = (delta: Partial<State> = {}) => (state = { ...initialState(), ...delta })
 
 const transformPixel = (x: number, y: number) => {
     const { width, height, content } = state.display
@@ -129,9 +123,9 @@ export const opcodes = {
 
         const vx = Vx(oc)
         const vy = Vy(oc)
-        const h = N(oc)
+        const height = N(oc)
         V[0xf] = 0
-        for (let y = 0; y < h; y++) {
+        for (let y = 0; y < height; y++) {
             let pixel = memory[I + y]
             for (let x = 0; x < 8; x++) {
                 if ((pixel & 0x80) > 0 && transformPixel(vx + x, vy + y)) V[0xf] = 1
@@ -141,5 +135,7 @@ export const opcodes = {
 
         state.isDrawing = true
         state.pc += 2
-    }
+    },
+    skipIfKey: (oc: number) => skipNext(oc, vx => state.pressedKeys[vx]),
+    skipIfNotKey: (oc: number) => skipNext(oc, vx => !state.pressedKeys[vx])
 }

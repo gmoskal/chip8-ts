@@ -288,6 +288,30 @@ describe("opcodes", () => {
             expect(state.display.content.slice(0, 2 + 8 + 1)).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0])
         })
     })
+    describe("SkipIfKey", () => {
+        it("skips when key is pressed", () => {
+            initWithV({ 0: 1 }, { pressedKeys: { 1: true } })
+            opcodes.skipIfKey(0xe09e)
+            expect(state.pc).toEqual(0x204)
+        })
+        it("doesn't skip when key is not pressed", () => {
+            initWithV({ 0: 1 }, { pressedKeys: { 1: false } })
+            opcodes.skipIfKey(0xe09e)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
 
+    describe("SkipIfNotKey", () => {
+        it("doens't skips when key is pressed", () => {
+            initWithV({ 0: 1 }, { pressedKeys: { 1: true } })
+            opcodes.skipIfNotKey(0xe09e)
+            expect(state.pc).toEqual(0x202)
+        })
+        it("skips when key is not pressed", () => {
+            initWithV({ 0: 1 }, { pressedKeys: { 1: false } })
+            opcodes.skipIfNotKey(0xe09e)
+            expect(state.pc).toEqual(0x204)
+        })
+    })
     // tslint:disable-next-line:max-file-line-count
 })
