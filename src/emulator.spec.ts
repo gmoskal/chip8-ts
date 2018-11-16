@@ -1,11 +1,13 @@
 import { opcodes, init, state } from "./emulator"
 
-const initWithV = (delta: NMap<number>) =>
-    init({ V: new Array(16).fill(0).map((_, i) => (delta[i] !== undefined ? delta[i] : 0)) })
+const initWithV = (vDelta: NMap<number>, delta: Partial<typeof state> = {}) =>
+    init({ ...delta, V: new Array(16).fill(0).map((_, i) => (vDelta[i] !== undefined ? vDelta[i] : 0)) })
+
 declare var global: any
 const mockMath = Object.create(global.Math)
 mockMath.random = () => 0.5
 global.Math = mockMath
+
 describe("opcodes", () => {
     beforeEach(() => init())
 
@@ -254,14 +256,36 @@ describe("opcodes", () => {
             expect(state.pc).toEqual(0x202)
         })
     })
+
     describe("Rand", () => {
         it("gives random value & 0x00", () => {
             opcodes.randAndNN(0xc100)
             expect(state.V[1]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
         })
+
         it("gives random value & 0xff", () => {
             opcodes.randAndNN(0xc1ff)
             expect(state.V[1]).toEqual(127)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("Draw", () => {
+        it("sets draw flag and inc pc", () => {
+            opcodes.draw(0xd000)
+            expect(state.isDrawing).toEqual(true)
+            expect(state.pc).toEqual(0x202)
+            expect(state.I).toEqual(0)
+            expect(state.V[0xf]).toEqual(0)
+        })
+
+        it("draws a sprit at (2,0) sprite (8,1)", () => {
+            initWithV({ 0: 2, 1: 0 }, { I: 0x0 })
+            state.memory.fill(0xff)
+            opcodes.draw(0xd011)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.display.content.slice(0, 2 + 8 + 1)).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0])
         })
     })
 
