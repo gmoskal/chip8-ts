@@ -14,6 +14,8 @@ export let initialState = () => {
         stack: getArray(16),
         memory,
         pressedKeys: pressedKeys(),
+        delayTimer: 0,
+        soundTimer: 0,
         V: getArray(16),
         display: {
             width: 64,
@@ -136,6 +138,15 @@ export const opcodes = {
         state.isDrawing = true
         state.pc += 2
     },
+
     skipIfKey: (oc: number) => skipNext(oc, vx => state.pressedKeys[vx]),
-    skipIfNotKey: (oc: number) => skipNext(oc, vx => !state.pressedKeys[vx])
+    skipIfNotKey: (oc: number) => skipNext(oc, vx => !state.pressedKeys[vx]),
+    setDelayTimer: (oc: number) => {
+        state.delayTimer = Vx(oc)
+        state.pc += 2
+    },
+    setSoundTimer: (oc: number) => {
+        state.soundTimer = Vx(oc)
+        state.pc += 2
+    }
 }

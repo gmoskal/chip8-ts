@@ -304,14 +304,27 @@ describe("opcodes", () => {
     describe("SkipIfNotKey", () => {
         it("doens't skips when key is pressed", () => {
             initWithV({ 0: 1 }, { pressedKeys: { 1: true } })
-            opcodes.skipIfNotKey(0xe09e)
+            opcodes.skipIfNotKey(0xe0a1)
             expect(state.pc).toEqual(0x202)
         })
         it("skips when key is not pressed", () => {
             initWithV({ 0: 1 }, { pressedKeys: { 1: false } })
-            opcodes.skipIfNotKey(0xe09e)
+            opcodes.skipIfNotKey(0xe0a1)
             expect(state.pc).toEqual(0x204)
         })
+    })
+
+    it("SetDelayTimer", () => {
+        initWithV({ 1: 108 })
+        opcodes.setDelayTimer(0xf107)
+        expect(state.delayTimer).toEqual(108)
+        expect(state.pc).toEqual(0x202)
+    })
+    it("SetSoundTimer", () => {
+        initWithV({ 1: 108 })
+        opcodes.setSoundTimer(0xf118)
+        expect(state.soundTimer).toEqual(108)
+        expect(state.pc).toEqual(0x202)
     })
     // tslint:disable-next-line:max-file-line-count
 })
