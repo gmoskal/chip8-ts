@@ -15,10 +15,16 @@ const Y = (oc: number) => (oc & 0x00f0) >> 4
 const Vy = (oc: number) => state.V[Y(oc)]
 const NN = (oc: number) => oc & 0x00ff
 
+const setVf = (oc: number, calcVf: (vx: number, vy: number) => boolean | number) =>
+    (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
+
 const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
     const x = X(oc)
-    state.V[x] = calcVx(state.V[x], Vy(oc))
+    const newVx = calcVx(state.V[x], Vy(oc))
+    state.V[x] = newVx
     state.pc += 2
+    if (newVx > 255) state.V[x] -= 256
+    else if (newVx < 0) state.V[x] += 256
 }
 
 const skipNext = (oc: number, cond: (vx: number) => boolean) => (state.pc += cond(Vx(oc)) ? 4 : 2)
@@ -48,27 +54,23 @@ export const opcodes = {
     andVy: (oc: number) => setVx(oc, (vx, vy) => vx & vy),
     xorVy: (oc: number) => setVx(oc, (vx, vy) => vx ^ vy),
     addVy: (oc: number) => {
+        setVf(oc, (vx, vy) => vx + vy > 255)
         setVx(oc, (vx, vy) => vx + vy)
-        state.V[0xf] = +(Vx(oc) > 255)
-        // if (Vx(oc) > 255) state.V[X(oc)] -= 256
     },
     subVy: (oc: number) => {
-        state.V[0xf] = +(Vx(oc) > Vy(oc))
+        setVf(oc, (vx, vy) => vx > vy)
         setVx(oc, (vx, vy) => vx - vy)
-        // if (Vx(oc) < 0) state.V[X(oc)] += 256
     },
     shiftRight: (oc: number) => {
-        state.V[0xf] = Vx(oc) & 0x1
-        state.V[X(oc)] >>= 1
-        state.pc += 2
+        setVf(oc, vx => vx & 0x1)
+        setVx(oc, vx => vx >> 1)
     },
     shiftLeft: (oc: number) => {
-        state.V[0xf] = Vx(oc) & 0xf0
-        state.V[X(oc)] <<= 1
-        state.pc += 2
+        setVf(oc, vx => vx & 0xf0)
+        setVx(oc, vx => vx << 1)
     },
     setVySubVx: (oc: number) => {
-        state.V[0xf] = +(Vy(oc) > Vx(oc))
+        setVf(oc, (vx, vy) => vy > vx)
         setVx(oc, (vx, vy) => vy - vx)
     }
 }
