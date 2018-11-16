@@ -62,6 +62,10 @@ const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
     else state.V[x] = newVx
     state.pc += 2
 }
+const setI = (oc: number, calcI: (vx: number, i: number) => number) => {
+    state.I = calcI(Vx(oc), state.I)
+    state.pc += 2
+}
 
 const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 4 : 2)
 
@@ -84,6 +88,8 @@ export const opcodes = {
     skipIfNNNotEq: (oc: number) => skipNext(oc, vx => vx !== NN(oc)),
     skipIfVyEq: (oc: number) => skipNext(oc, (vx, vy) => vx === vy),
     skipIfVyNotEq: (oc: number) => skipNext(oc, (vx, vy) => vx !== vy),
+    skipIfKey: (oc: number) => skipNext(oc, vx => state.pressedKeys[vx]),
+    skipIfNotKey: (oc: number) => skipNext(oc, vx => !state.pressedKeys[vx]),
 
     setNN: (oc: number) => setVx(oc, () => NN(oc)),
     addNN: (oc: number) => setVx(oc, vx => vx + NN(oc)),
@@ -114,10 +120,7 @@ export const opcodes = {
         setVf(oc, (vx, vy) => vy > vx)
         setVx(oc, (vx, vy) => vy - vx)
     },
-    setIToNNN: (oc: number) => {
-        state.I = NNN(oc)
-        state.pc += 2
-    },
+    setIToNNN: (oc: number) => setI(oc, () => NNN(oc)),
     randAndNN: (oc: number) => setVx(oc, () => ~~(Math.random() * 0xff) & NN(oc)),
 
     draw: (oc: number) => {
@@ -139,14 +142,31 @@ export const opcodes = {
         state.pc += 2
     },
 
-    skipIfKey: (oc: number) => skipNext(oc, vx => state.pressedKeys[vx]),
-    skipIfNotKey: (oc: number) => skipNext(oc, vx => !state.pressedKeys[vx]),
     setDelayTimer: (oc: number) => {
         state.delayTimer = Vx(oc)
         state.pc += 2
     },
+
+    delayTimer: (oc: number) => setVx(oc, () => state.delayTimer),
+
     setSoundTimer: (oc: number) => {
         state.soundTimer = Vx(oc)
         state.pc += 2
+    },
+
+    addVxToI: (oc: number) => {
+        // Undocumented overflow feature of the CHIP-8 used by the Spacefight 2091! game
+        state.V[0xf] = +(state.I + Vx(oc) > 0xfff)
+        setI(oc, (vx, i) => vx + i)
+    },
+
+    setIBySprite: (oc: number) => setI(oc, vx => vx * 5),
+
+    loadVxBDC: (oc: number) => {
+        const { memory, I } = state
+        const vx = Vx(oc)
+        memory[I + 2] = vx % 10
+        memory[I + 1] = ~~(vx / 10) % 10
+        memory[I] = ~~(vx / 100) % 10
     }
 }

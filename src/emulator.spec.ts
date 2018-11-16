@@ -314,17 +314,74 @@ describe("opcodes", () => {
         })
     })
 
-    it("SetDelayTimer", () => {
-        initWithV({ 1: 108 })
-        opcodes.setDelayTimer(0xf107)
-        expect(state.delayTimer).toEqual(108)
-        expect(state.pc).toEqual(0x202)
+    describe("setDelayTimerToVx", () => {
+        it("sets state.delayTimer to Vx value and inc pc", () => {
+            initWithV({ 1: 108 })
+            opcodes.setDelayTimer(0xf115)
+            expect(state.delayTimer).toEqual(108)
+            expect(state.pc).toEqual(0x202)
+        })
     })
-    it("SetSoundTimer", () => {
-        initWithV({ 1: 108 })
-        opcodes.setSoundTimer(0xf118)
-        expect(state.soundTimer).toEqual(108)
-        expect(state.pc).toEqual(0x202)
+
+    describe("delayTimer", () => {
+        it("sets Vx to state.delayTimer and inc pc", () => {
+            initWithV({ 1: 108 }, { delayTimer: 42 })
+            opcodes.delayTimer(0xf107)
+            expect(state.V[1]).toEqual(42)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("setSoundTimerToVx", () => {
+        it("sets state.soundTimer to Vx value and inc pc", () => {
+            initWithV({ 1: 108 })
+            opcodes.setSoundTimer(0xf118)
+            expect(state.soundTimer).toEqual(108)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("addVxToI", () => {
+        it("adds VX and inc pc", () => {
+            initWithV({ 1: 108 })
+            opcodes.addVxToI(0xf118)
+            expect(state.I).toEqual(108)
+            expect(state.V[0xf]).toEqual(0)
+            expect(state.pc).toEqual(0x202)
+        })
+
+        it("adds VX, inc pc and sets Vf to 1 on overflow (> 0xfff)", () => {
+            initWithV({ 1: 0x1 }, { I: 0xfff })
+            opcodes.addVxToI(0xf118)
+            expect(state.I).toEqual(0xfff + 1)
+            expect(state.V[0xf]).toEqual(1)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+    describe("setIBySprite", () => {
+        it("sets i to Vx * 5 and inc pc", () => {
+            initWithV({ 1: 2 }, { I: 0xfff })
+            opcodes.setIBySprite(0xf129)
+            expect(state.I).toEqual(10)
+            expect(state.pc).toEqual(0x202)
+        })
+    })
+
+    describe("loadVxBDC", () => {
+        it("sets memory[i] = DBC(Vx)", () => {
+            initWithV({ 1: 108 }, { I: 100 })
+            opcodes.loadVxBDC(0xf133)
+            expect(state.memory[100]).toEqual(1)
+            expect(state.memory[101]).toEqual(0)
+            expect(state.memory[102]).toEqual(8)
+        })
+        it("sets memory[i] = DBC(Vx) for 2 digits no", () => {
+            initWithV({ 0: 42 })
+            opcodes.loadVxBDC(0xf033)
+            expect(state.memory[0]).toEqual(0)
+            expect(state.memory[1]).toEqual(4)
+            expect(state.memory[2]).toEqual(2)
+        })
     })
     // tslint:disable-next-line:max-file-line-count
 })
