@@ -63,28 +63,26 @@ const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
     if (newVx > 255) state.V[x] = newVx - 256
     else if (newVx < 0) state.V[x] = newVx + 256
     else state.V[x] = newVx
-    state.pc += 2
 }
 
 const setI = (oc: number, calcI: (vx: number, i: number) => number) => {
     state.I = calcI(Vx(oc), state.I)
-    state.pc += 2
 }
 
-const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 4 : 2)
+const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
 export const run = (oc: number) => {
+    state.pc += 2
     switch (oc & 0xf000) {
         case 0x0000:
             switch (oc) {
                 case 0x00e0:
-                    // tslint:disable-next-line:no-console
-                    console.log("CLS")
-                    break
+                    state.display.content.fill(0)
+                    return
                 case 0x00ee:
                     state.sp--
                     state.pc = state.stack[state.sp]
-                    break
+                    return
             }
             break
 
@@ -93,7 +91,7 @@ export const run = (oc: number) => {
             break
 
         case 0x2000: // CALL
-            state.stack[state.sp] = state.pc
+            state.stack[state.sp] = state.pc - 2
             state.sp++
             state.pc = NNN(oc)
             break
@@ -113,6 +111,7 @@ export const run = (oc: number) => {
         case 0x6000:
             setVx(oc, () => NN(oc))
             break
+
         case 0x7000:
             setVx(oc, vx => vx + NN(oc))
             break
@@ -121,36 +120,36 @@ export const run = (oc: number) => {
             switch (oc & 0x000f) {
                 case 0x0000: // Sets VX to the value of VY.
                     setVx(oc, (_, vy) => vy)
-                    break
+                    return
                 case 0x0001:
                     setVx(oc, (vx, vy) => vx | vy)
-                    break
+                    return
                 case 0x0002:
                     setVx(oc, (vx, vy) => vx & vy)
-                    break
+                    return
                 case 0x0003:
                     setVx(oc, (vx, vy) => vx ^ vy)
-                    break
+                    return
                 case 0x0004:
                     setVf(oc, (vx, vy) => vx + vy > 255)
                     setVx(oc, (vx, vy) => vx + vy)
-                    break
+                    return
                 case 0x0005:
                     setVf(oc, (vx, vy) => vx > vy)
                     setVx(oc, (vx, vy) => vx - vy)
-                    break
+                    return
                 case 0x0006:
                     setVf(oc, vx => vx & 0x1)
                     setVx(oc, vx => vx >> 1)
-                    break
+                    return
                 case 0x0007:
                     setVf(oc, (vx, vy) => vy > vx)
                     setVx(oc, (vx, vy) => vy - vx)
-                    break
+                    return
                 case 0x000e:
                     setVf(oc, vx => vx & 0xf0)
                     setVx(oc, vx => vx << 1)
-                    break
+                    return
             }
             break
 
@@ -187,7 +186,6 @@ export const run = (oc: number) => {
                 }
 
                 state.isDrawing = true
-                state.pc += 2
             }
             break
 
@@ -195,11 +193,11 @@ export const run = (oc: number) => {
             switch (oc & 0x00ff) {
                 case 0x009e:
                     skipNext(oc, vx => state.keys[vx])
+                    return
 
-                    break
                 case 0x00a1:
                     skipNext(oc, vx => !state.keys[vx])
-                    break
+                    return
             }
 
             break
@@ -208,7 +206,7 @@ export const run = (oc: number) => {
             switch (oc & 0x00ff) {
                 case 0x0007:
                     setVx(oc, () => state.delayTimer)
-                    break
+                    return
 
                 case 0x000a:
                     {
@@ -220,26 +218,23 @@ export const run = (oc: number) => {
                             }
                         }
                         // If we didn't received a keypress, skip this cycle and try again.
-                        if (!keyPress) return
-                        state.pc += 2
+                        if (!keyPress) state.pc -= 2
                     }
                     return
                 case 0x0015:
                     state.delayTimer = Vx(oc)
-                    state.pc += 2
-                    break
+                    return
                 case 0x0018:
                     state.soundTimer = Vx(oc)
-                    state.pc += 2
-                    break
+                    return
                 case 0x001e:
                     // Undocumented overflow feature of the CHIP-8 used by the Spacefight 2091! game
                     state.V[0xf] = +(state.I + Vx(oc) > 0xfff)
                     setI(oc, (vx, i) => vx + i)
-                    break
+                    return
                 case 0x0029:
                     setI(oc, vx => vx * 5)
-                    break
+                    return
                 case 0x0033:
                     {
                         const { memory, I } = state
@@ -248,31 +243,21 @@ export const run = (oc: number) => {
                         memory[I + 1] = ~~(vx / 10) % 10
                         memory[I] = ~~(vx / 100) % 10
                     }
-                    break
+                    return
                 case 0x0055:
-                    {
-                        const x = X(oc)
-                        const { memory, V, I } = state
-                        for (let i = 0; i <= x; i++) memory[I + i] = V[i]
-
-                        // On the original interpreter, when the operation is done, I = I + X + 1.
-                        state.I += x + 1
-                        state.pc += 2
-                    }
-
-                    break
                 case 0x0065:
                     {
                         const x = X(oc)
                         const { memory, V, I } = state
-                        for (let i = 0; i <= x; i++) V[i] = memory[I + i]
-
-                        // On the original interpreter, when the operation is done, I = I + X + 1.
+                        const restore = (oc & 0x00ff) === 0x0065
+                        for (let i = 0; i <= x; i++) {
+                            if (restore) V[i] = memory[I + i]
+                            else memory[I + i] = V[i]
+                        }
                         state.I += x + 1
-                        state.pc += 2
                     }
 
-                    break
+                    return
             }
 
             break
