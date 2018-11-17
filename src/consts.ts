@@ -20,3 +20,5 @@ export const chars = [
 ]
 
 export const keys = "1234qwerasdfzxcv".split("")
+export const width = 64
+export const height = 32

@@ -1,4 +1,4 @@
-import { chars, keys } from "./consts"
+import { chars, keys, width, height } from "./consts"
 
 const getArray = (size: number): number[] => new Array(size).fill(0)
 const getKeys = (): NMap<boolean> => keys.reduce((acc, _, ind) => ({ ...acc, [ind]: false }), {})
@@ -16,11 +16,7 @@ export let initialState = () => {
         delayTimer: 0,
         soundTimer: 0,
         V: getArray(16),
-        display: {
-            width: 64,
-            height: 32,
-            content: getArray(64 * 32)
-        },
+        screen: getArray(64 * 32),
         isDrawing: false
     }
 }
@@ -34,16 +30,15 @@ export let state = initialState()
 
 export const init = (delta: Partial<State> = {}) => (state = { ...initialState(), ...delta })
 
-const transformPixel = (x: number, y: number) => {
-    const { width, height, content } = state.display
+const updatePixel = (x: number, y: number) => {
     if (x > width) x -= width
     else if (x < 0) x += width
     if (y > height) y -= height
     else if (y < 0) y += height
     const location = x + y * width
     // console.log("-- (" + x + "," + y + ") = " + content[location] + " -> " + (content[location] ^ 1))
-    content[location] ^= 1
-    return !content[location]
+    state.screen[location] ^= 1
+    return !state.screen[location]
 }
 
 const X = (oc: number) => (oc & 0x0f00) >> 8
@@ -71,7 +66,7 @@ export const run = (oc: number) => {
         case 0x0000:
             switch (oc) {
                 case 0x00e0:
-                    state.display.content.fill(0)
+                    state.screen.fill(0)
                     return
                 case 0x00ee:
                     state.sp--
@@ -169,12 +164,12 @@ export const run = (oc: number) => {
 
                 const vx = Vx(oc)
                 const vy = Vy(oc)
-                const height = N(oc)
+                const h = N(oc)
                 V[0xf] = 0
-                for (let y = 0; y < height; y++) {
+                for (let y = 0; y < h; y++) {
                     let pixel = memory[I + y]
                     for (let x = 0; x < 8; x++) {
-                        if ((pixel & 0x80) > 0 && transformPixel(vx + x, vy + y)) V[0xf] = 1
+                        if ((pixel & 0x80) > 0 && updatePixel(vx + x, vy + y)) V[0xf] = 1
                         pixel <<= 1
                     }
                 }

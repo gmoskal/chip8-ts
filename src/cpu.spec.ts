@@ -304,7 +304,7 @@ describe("opcodes", () => {
             state.memory.fill(0xff)
             run(0xd011)
             expect(state.V[0xf]).toEqual(0)
-            expect(state.display.content.slice(0, 2 + 8 + 1)).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0])
+            expect(state.screen.slice(0, 2 + 8 + 1)).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0])
         })
     })
     describe("SkipIfKey", () => {

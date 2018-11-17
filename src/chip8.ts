@@ -1,21 +1,21 @@
 import { state, nextCommand, init, loadProgram } from "./cpu"
-import { keys } from "./consts"
+import { keys, width, height } from "./consts"
 let ctx: CanvasRenderingContext2D
 
 const setupGraphics = () => {
     const element = document.createElement("canvas")
-    element.width = state.display.width
-    element.height = state.display.height
+    element.width = width
+    element.height = height
     document.getElementById("emulator").appendChild(element)
     ctx = element.getContext("2d")
 }
 
 const draw = () => {
     if (!state.isDrawing) return
-    const imageData = ctx.getImageData(0, 0, state.display.width, state.display.height)
+    const imageData = ctx.getImageData(0, 0, width, height)
     const fg = [45, 199, 239]
     const bg = [46 * 0.5, 52 * 0.5, 81 * 0.5]
-    state.display.content.forEach((p, index) => {
+    state.screen.forEach((p, index) => {
         const i = index * 4
         const c = p ? fg : bg
         imageData.data[i] = c[0]
