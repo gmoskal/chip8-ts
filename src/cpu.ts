@@ -1,32 +1,27 @@
 import { chars, keys, width, height } from "./consts"
 
-const getArray = (size: number): number[] => new Array(size).fill(0)
-const getKeys = (): NMap<boolean> => keys.reduce((acc, _, ind) => ({ ...acc, [ind]: false }), {})
+const getArray = <T = number>(size: number, v: T): T[] => new Array(size).fill(v)
 
-export let initialState = () => {
-    const memory = new Uint8Array(new ArrayBuffer(0x1000)).fill(0)
-    memory.set(chars)
-    return {
-        sp: 0,
-        I: 0,
-        pc: 0x200,
-        stack: getArray(16),
-        memory,
-        keys: getKeys(),
-        delayTimer: 0,
-        soundTimer: 0,
-        V: getArray(16),
-        screen: getArray(64 * 32),
-        isDrawing: false
-    }
-}
+export const getInitialState = () => ({
+    sp: 0,
+    I: 0,
+    pc: 0x200,
+    stack: getArray(16, 0),
+    memory: new Uint8Array(new ArrayBuffer(0x1000)).fill(0),
+    keys: keys.reduce((acc, _, i) => ({ ...acc, [i]: false }), {}) as NMap<boolean>,
+    delayTimer: 0,
+    soundTimer: 0,
+    V: getArray(16, 0),
+    screen: getArray(width * height, 0),
+    isDrawing: false
+})
 
 export const loadProgram = (program: Uint8Array) => program.forEach((v, i) => (state.memory[i + 0x200] = v))
-
-type State = ReturnType<typeof initialState>
-export let state = initialState()
-
-export const init = (delta: Partial<State> = {}) => (state = { ...initialState(), ...delta })
+export let state: ReturnType<typeof getInitialState>
+export const init = (delta: Partial<typeof state> = {}) => {
+    state = { ...getInitialState(), ...delta }
+    state.memory.set(chars)
+}
 
 const updatePixel = (x: number, y: number) => {
     x += x < 0 ? width : x > width ? -width : 0
@@ -201,7 +196,6 @@ export const run = (oc: number) => {
                                 keyPress = true
                             }
                         }
-                        // If we didn't received a keypress, skip this cycle and try again.
                         if (!keyPress) state.pc -= 2
                     }
                     return
@@ -250,5 +244,4 @@ export const run = (oc: number) => {
             // tslint:disable-next-line:no-console
             console.log(`invalid opcode: ${oc}!`)
     }
-    // tslint:disable-next-line:max-file-line-count
 }

@@ -1,5 +1,6 @@
 import { state, nextCommand, init, loadProgram } from "./cpu"
 import { keys, width, height } from "./consts"
+
 let ctx: CanvasRenderingContext2D
 
 const setupGraphics = () => {
@@ -12,18 +13,18 @@ const setupGraphics = () => {
 
 const draw = () => {
     if (!state.isDrawing) return
-    const imageData = ctx.getImageData(0, 0, width, height)
+    const pixels = ctx.getImageData(0, 0, width, height)
     const fg = [45, 199, 239]
-    const bg = [46 * 0.5, 52 * 0.5, 81 * 0.5]
+    const bg = [23, 26, 40]
     state.screen.forEach((p, index) => {
         const i = index * 4
         const c = p ? fg : bg
-        imageData.data[i] = c[0]
-        imageData.data[i + 1] = c[1]
-        imageData.data[i + 2] = c[2]
-        imageData.data[i + 3] = 255
+        pixels.data[i] = c[0]
+        pixels.data[i + 1] = c[1]
+        pixels.data[i + 2] = c[2]
+        pixels.data[i + 3] = 255
     })
-    ctx.putImageData(imageData, 0, 0)
+    ctx.putImageData(pixels, 0, 0)
     state.isDrawing = false
 }
 
