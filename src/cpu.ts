@@ -1,18 +1,18 @@
 import { chars, keys, width, height } from "./consts"
 
-const getArray = <T = number>(size: number, v: T): T[] => new Array(size).fill(v)
+const getArray = (size: number): number[] => new Array(size).fill(0)
 
 export const getInitialState = () => ({
     sp: 0,
     I: 0,
     pc: 0x200,
-    stack: getArray(16, 0),
+    stack: getArray(16),
     memory: new Uint8Array(new ArrayBuffer(0x1000)).fill(0),
     keys: keys.reduce((acc, _, i) => ({ ...acc, [i]: false }), {}) as NMap<boolean>,
+    V: getArray(16),
+    screen: getArray(width * height),
     delayTimer: 0,
     soundTimer: 0,
-    V: getArray(16, 0),
-    screen: getArray(width * height, 0),
     isDrawing: false
 })
 
@@ -41,15 +41,19 @@ const NNN = (oc: number) => oc & 0x0fff
 
 const setVf = (oc: number, calcVf: (vx: number, vy: number) => boolean | number) =>
     (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
+
 const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
     const x = X(oc)
     const v = calcVx(state.V[x], Vy(oc))
     state.V[x] = v + (v < 0 ? 256 : v > 255 ? -256 : 0)
 }
+
 const setI = (oc: number, calcI: (vx: number, i: number) => number) => (state.I = calcI(Vx(oc), state.I))
+
 const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
 export const nextCommand = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
+
 export const run = (oc: number) => {
     state.pc += 2
     switch (oc & 0xf000) {
@@ -148,25 +152,24 @@ export const run = (oc: number) => {
             setVx(oc, () => ~~(Math.random() * 0xff) & NN(oc))
             break
 
-        case 0xd000:
-            {
-                const { I, V, memory } = state
+        case 0xd000: {
+            const { I, V, memory } = state
 
-                const vx = Vx(oc)
-                const vy = Vy(oc)
-                const h = N(oc)
-                V[0xf] = 0
-                for (let y = 0; y < h; y++) {
-                    let pixel = memory[I + y]
-                    for (let x = 0; x < 8; x++) {
-                        if ((pixel & 0x80) > 0 && updatePixel(vx + x, vy + y)) V[0xf] = 1
-                        pixel <<= 1
-                    }
+            const vx = Vx(oc)
+            const vy = Vy(oc)
+            const h = N(oc)
+            V[0xf] = 0
+            for (let y = 0; y < h; y++) {
+                let pixel = memory[I + y]
+                for (let x = 0; x < 8; x++) {
+                    if ((pixel & 0x80) > 0 && updatePixel(vx + x, vy + y)) V[0xf] = 1
+                    pixel <<= 1
                 }
-
-                state.isDrawing = true
             }
-            break
+
+            state.isDrawing = true
+            return
+        }
 
         case 0xe000:
             switch (oc & 0x00ff) {
@@ -178,7 +181,6 @@ export const run = (oc: number) => {
                     skipNext(oc, vx => !state.keys[vx])
                     return
             }
-
             break
 
         case 0xf000:
@@ -187,18 +189,17 @@ export const run = (oc: number) => {
                     setVx(oc, () => state.delayTimer)
                     return
 
-                case 0x000a:
-                    {
-                        let keyPress = false
-                        for (let i = 0; i < 16; ++i) {
-                            if (state.keys[i]) {
-                                state.V[X(oc)] = i
-                                keyPress = true
-                            }
+                case 0x000a: {
+                    let keyPress = false
+                    for (let i = 0; i < 16; ++i) {
+                        if (state.keys[i]) {
+                            state.V[X(oc)] = i
+                            keyPress = true
                         }
-                        if (!keyPress) state.pc -= 2
                     }
+                    if (!keyPress) state.pc -= 2
                     return
+                }
                 case 0x0015:
                     state.delayTimer = Vx(oc)
                     return
@@ -213,29 +214,26 @@ export const run = (oc: number) => {
                 case 0x0029:
                     setI(oc, vx => vx * 5)
                     return
-                case 0x0033:
-                    {
-                        const { memory, I } = state
-                        const vx = Vx(oc)
-                        memory[I + 2] = vx % 10
-                        memory[I + 1] = ~~(vx / 10) % 10
-                        memory[I] = ~~(vx / 100) % 10
-                    }
+                case 0x0033: {
+                    const { memory, I } = state
+                    const vx = Vx(oc)
+                    memory[I + 2] = vx % 10
+                    memory[I + 1] = ~~(vx / 10) % 10
+                    memory[I] = ~~(vx / 100) % 10
                     return
+                }
                 case 0x0055:
-                case 0x0065:
-                    {
-                        const x = X(oc)
-                        const { memory, V, I } = state
-                        const restore = (oc & 0x00ff) === 0x0065
-                        for (let i = 0; i <= x; i++) {
-                            if (restore) V[i] = memory[I + i]
-                            else memory[I + i] = V[i]
-                        }
-                        state.I += x + 1
+                case 0x0065: {
+                    const x = X(oc)
+                    const { memory, V, I } = state
+                    const restore = (oc & 0x00ff) === 0x0065
+                    for (let i = 0; i <= x; i++) {
+                        if (restore) V[i] = memory[I + i]
+                        else memory[I + i] = V[i]
                     }
-
+                    state.I += x + 1
                     return
+                }
             }
 
             break

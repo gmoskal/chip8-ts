@@ -1,4 +1,4 @@
-# [WIP] Chip 8 emulator
+# Chip 8 emulator written in Typescript
 
 ## Running
 
