@@ -7,8 +7,11 @@ const setupGraphics = () => {
     const element = document.createElement("canvas")
     element.width = width
     element.height = height
-    document.getElementById("emulator").appendChild(element)
-    ctx = element.getContext("2d")
+    const emulator = document.getElementById("emulator")
+    const lctx = element.getContext("2d")
+    if (!emulator || !lctx) throw new Error("invalid template")
+    emulator.appendChild(element)
+    ctx = lctx
 }
 
 const draw = () => {
