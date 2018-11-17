@@ -21,7 +21,7 @@ describe("opcodes", () => {
         it("Calls a subrutine and returns", () => {
             run(0x2123)
             run(0x00ee)
-            expect(state.pc).toEqual(0x200)
+            expect(state.pc).toEqual(0x200 + 2)
             expect(state.sp).toEqual(0)
         })
 
@@ -30,7 +30,7 @@ describe("opcodes", () => {
             run(0x2234)
             run(0x00ee)
             expect(state.sp).toEqual(1)
-            expect(state.pc).toEqual(0x123)
+            expect(state.pc).toEqual(0x123 + 2)
         })
 
         it("Goto to NNN", () => {

@@ -64,6 +64,7 @@ const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
 const setI = (oc: number, calcI: (vx: number, i: number) => number) => (state.I = calcI(Vx(oc), state.I))
 const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
+export const nextCommand = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
 export const run = (oc: number) => {
     state.pc += 2
     switch (oc & 0xf000) {
@@ -84,7 +85,7 @@ export const run = (oc: number) => {
             break
 
         case 0x2000: // CALL
-            state.stack[state.sp] = state.pc - 2
+            state.stack[state.sp] = state.pc
             state.sp++
             state.pc = NNN(oc)
             break
