@@ -21,9 +21,7 @@ export let initialState = () => {
     }
 }
 
-export const loadProgram = (program: Uint8Array) => {
-    for (let i = 0; i < program.length; i++) state.memory[i + 0x200] = program[i]
-}
+export const loadProgram = (program: Uint8Array) => program.forEach((v, i) => (state.memory[i + 0x200] = v))
 
 type State = ReturnType<typeof initialState>
 export let state = initialState()
@@ -31,14 +29,11 @@ export let state = initialState()
 export const init = (delta: Partial<State> = {}) => (state = { ...initialState(), ...delta })
 
 const updatePixel = (x: number, y: number) => {
-    if (x > width) x -= width
-    else if (x < 0) x += width
-    if (y > height) y -= height
-    else if (y < 0) y += height
-    const location = x + y * width
-    // console.log("-- (" + x + "," + y + ") = " + content[location] + " -> " + (content[location] ^ 1))
-    state.screen[location] ^= 1
-    return !state.screen[location]
+    x += x < 0 ? width : x > width ? -width : 0
+    y += y < 0 ? height : y > height ? -height : 0
+    const i = x + y * width
+    state.screen[i] ^= 1
+    return !state.screen[i]
 }
 
 const X = (oc: number) => (oc & 0x0f00) >> 8
