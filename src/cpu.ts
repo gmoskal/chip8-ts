@@ -56,19 +56,12 @@ const NNN = (oc: number) => oc & 0x0fff
 
 const setVf = (oc: number, calcVf: (vx: number, vy: number) => boolean | number) =>
     (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
-
 const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
     const x = X(oc)
-    const newVx = calcVx(state.V[x], Vy(oc))
-    if (newVx > 255) state.V[x] = newVx - 256
-    else if (newVx < 0) state.V[x] = newVx + 256
-    else state.V[x] = newVx
+    const v = calcVx(state.V[x], Vy(oc))
+    state.V[x] = v + (v < 0 ? 256 : v > 255 ? -256 : 0)
 }
-
-const setI = (oc: number, calcI: (vx: number, i: number) => number) => {
-    state.I = calcI(Vx(oc), state.I)
-}
-
+const setI = (oc: number, calcI: (vx: number, i: number) => number) => (state.I = calcI(Vx(oc), state.I))
 const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
 export const run = (oc: number) => {
