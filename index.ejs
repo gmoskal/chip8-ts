@@ -19,14 +19,21 @@
 </head>
 
 <body>
-        <input type="checkbox" id="switch" checked>
-        <label for="switch" class="switch-label">Turn&nbsp;</label>
+    <input type="checkbox" id="switch">
+    <label for="switch" class="switch-label"></label>
+    <div id="buttons"></div>
 
     <div class="container">
-        <div id="emulator" class="screen"></div>
-        <div class="overlay">CHIP 8 Emulator</div>
+            <div id="emulator" class="screen"></div>
+            <div class="overlay">CHIP 8 Emulator</div>
     </div>
 
+    <div class="content">
+        <p>Select different .ch8 binary file
+        <input type="file" id="file"/></p>
+        <p>List of old chip8 games can be found <a href="https://github.com/Dillonb/chip8/tree/master/games">here</a></p>
+        <p>Compiler is available <a href="http://johnearnest.github.io/Octo/index.html?gist=f3685a75817cde6d5c0d">here</a></p>
+    </div>
     <noscript>You need to enable JavaScript to run this app. </noscript>
 </body>
 
