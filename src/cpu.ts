@@ -39,188 +39,150 @@ const N = (oc: number) => oc & 0x000f
 const NN = (oc: number) => oc & 0x00ff
 const NNN = (oc: number) => oc & 0x0fff
 
-const setVf = (oc: number, calcVf: (vx: number, vy: number) => boolean | number) =>
-    (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
-
-const setVx = (oc: number, calcVx: (vx: number, vy: number) => number) => {
+type CalcVf = (vx: number, vy: number) => boolean | number
+const setVf = (calcVf: CalcVf) => (oc: number) => (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
+type CalcVx = (vx: number, vy: number) => number
+const setVx = (calcVx: CalcVx) => (oc: number) => {
     const x = X(oc)
     const v = calcVx(state.V[x], Vy(oc))
     state.V[x] = v + (v < 0 ? 256 : v > 255 ? -256 : 0)
 }
+const setVfVx = (calcVf: CalcVf, calcVx: CalcVx) => (oc: number) => {
+    setVf(calcVf)(oc)
+    setVx(calcVx)(oc)
+}
 
-const setI = (oc: number, calcI: (vx: number, i: number) => number) => (state.I = calcI(Vx(oc), state.I))
+const setI = (calcI: (vx: number, i: number) => number) => (oc: number) => (state.I = calcI(Vx(oc), state.I))
 
-const skipNext = (oc: number, cond: (vx: number, vy: number) => boolean) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
+const incPc = (cond: (vx: number, vy: number) => boolean) => (oc: number) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
-export const nextCommand = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
+const draw = (oc: number) => {
+    const { I, V, memory } = state
+    const vx = Vx(oc)
+    const vy = Vy(oc)
+    const h = N(oc)
+    V[0xf] = 0
+    for (let y = 0; y < h; y++) {
+        let pixel = memory[I + y]
+        for (let x = 0; x < 8; x++) {
+            if ((pixel & 0x80) > 0 && updatePixel(vx + x, vy + y)) V[0xf] = 1
+            pixel <<= 1
+        }
+    }
 
-export const run = (oc: number) => {
-    state.pc += 2
+    state.isDrawing = true
+}
+
+const setKey = (oc: number) => {
+    let keyPress = false
+    keys.forEach((_, i) => {
+        if (state.keys[i]) {
+            state.V[X(oc)] = i
+            keyPress = true
+        }
+    })
+    if (!keyPress) state.pc -= 2
+}
+
+export const runOpcode = (oc: number): ((oc: number) => void) | null => {
     switch (oc & 0xf000) {
         case 0x0000:
             switch (oc) {
                 case 0x00e0:
                     state.screen.fill(0)
-                    return
+                    break
                 case 0x00ee:
                     state.sp--
                     state.pc = state.stack[state.sp]
-                    return
+                    break
+                default:
+                    state.pc = NNN(oc)
             }
-            break
-
+            return null
         case 0x1000: // GOTO NNN
             state.pc = NNN(oc)
-            break
-
+            return null
         case 0x2000: // CALL
             state.stack[state.sp] = state.pc
             state.sp++
             state.pc = NNN(oc)
-            break
-
+            return null
         case 0x3000:
-            skipNext(oc, vx => vx === NN(oc))
-            break
-
+            return incPc(vx => vx === NN(oc))
         case 0x4000:
-            skipNext(oc, vx => vx !== NN(oc))
-            break
-
+            return incPc(vx => vx !== NN(oc))
         case 0x5000:
-            skipNext(oc, (vx, vy) => vx === vy)
-            break
-
+            return incPc((vx, vy) => vx === vy)
         case 0x6000:
-            setVx(oc, () => NN(oc))
-            break
-
+            return setVx(() => NN(oc))
         case 0x7000:
-            setVx(oc, vx => vx + NN(oc))
-            break
-
+            return setVx(vx => vx + NN(oc))
         case 0x8000:
             switch (oc & 0x000f) {
                 case 0x0000: // Sets VX to the value of VY.
-                    setVx(oc, (_, vy) => vy)
-                    return
+                    return setVx((_, vy) => vy)
                 case 0x0001:
-                    setVx(oc, (vx, vy) => vx | vy)
-                    return
+                    return setVx((vx, vy) => vx | vy)
                 case 0x0002:
-                    setVx(oc, (vx, vy) => vx & vy)
-                    return
+                    return setVx((vx, vy) => vx & vy)
                 case 0x0003:
-                    setVx(oc, (vx, vy) => vx ^ vy)
-                    return
+                    return setVx((vx, vy) => vx ^ vy)
                 case 0x0004:
-                    setVf(oc, (vx, vy) => vx + vy > 255)
-                    setVx(oc, (vx, vy) => vx + vy)
-                    return
+                    return setVfVx((vx, vy) => vx + vy > 255, (vx, vy) => vx + vy)
                 case 0x0005:
-                    setVf(oc, (vx, vy) => vx > vy)
-                    setVx(oc, (vx, vy) => vx - vy)
-                    return
+                    return setVfVx((vx, vy) => vx > vy, (vx, vy) => vx - vy)
                 case 0x0006:
-                    setVf(oc, vx => vx & 0x1)
-                    setVx(oc, vx => vx >> 1)
-                    return
+                    return setVfVx(vx => vx & 0x1, vx => vx >> 1)
                 case 0x0007:
-                    setVf(oc, (vx, vy) => vy > vx)
-                    setVx(oc, (vx, vy) => vy - vx)
-                    return
+                    return setVfVx((vx, vy) => vy > vx, (vx, vy) => vy - vx)
                 case 0x000e:
-                    setVf(oc, vx => vx & 0xf0)
-                    setVx(oc, vx => vx << 1)
-                    return
+                    return setVfVx(vx => vx & 0xf0, vx => vx << 1)
             }
             break
-
         case 0x9000:
-            skipNext(oc, (vx, vy) => vx !== vy)
-            break
-
+            return incPc((vx, vy) => vx !== vy)
         case 0xa000:
-            setI(oc, () => NNN(oc))
-            break
-
+            return setI(() => NNN(oc))
         case 0xb000:
             state.pc = NNN(oc) + state.V[0]
-            break
-
+            return null
         case 0xc000:
-            setVx(oc, () => ~~(Math.random() * 0xff) & NN(oc))
-            break
-
-        case 0xd000: {
-            const { I, V, memory } = state
-
-            const vx = Vx(oc)
-            const vy = Vy(oc)
-            const h = N(oc)
-            V[0xf] = 0
-            for (let y = 0; y < h; y++) {
-                let pixel = memory[I + y]
-                for (let x = 0; x < 8; x++) {
-                    if ((pixel & 0x80) > 0 && updatePixel(vx + x, vy + y)) V[0xf] = 1
-                    pixel <<= 1
-                }
-            }
-
-            state.isDrawing = true
-            return
-        }
-
+            return setVx(() => ~~(Math.random() * 0xff) & NN(oc))
+        case 0xd000:
+            return draw
         case 0xe000:
             switch (oc & 0x00ff) {
                 case 0x009e:
-                    skipNext(oc, vx => state.keys[vx])
-                    return
-
+                    return incPc(vx => state.keys[vx])
                 case 0x00a1:
-                    skipNext(oc, vx => !state.keys[vx])
-                    return
+                    return incPc(vx => !state.keys[vx])
             }
             break
-
         case 0xf000:
             switch (oc & 0x00ff) {
                 case 0x0007:
-                    setVx(oc, () => state.delayTimer)
-                    return
-
-                case 0x000a: {
-                    let keyPress = false
-                    for (let i = 0; i < 16; ++i) {
-                        if (state.keys[i]) {
-                            state.V[X(oc)] = i
-                            keyPress = true
-                        }
-                    }
-                    if (!keyPress) state.pc -= 2
-                    return
-                }
+                    return setVx(() => state.delayTimer)
+                case 0x000a:
+                    return setKey
                 case 0x0015:
                     state.delayTimer = Vx(oc)
-                    return
+                    return null
                 case 0x0018:
                     state.soundTimer = Vx(oc)
-                    return
+                    return null
                 case 0x001e:
                     // Undocumented overflow feature of the CHIP-8 used by the Spacefight 2091! game
                     state.V[0xf] = +(state.I + Vx(oc) > 0xfff)
-                    setI(oc, (vx, i) => vx + i)
-                    return
+                    return setI((vx, i) => vx + i)
                 case 0x0029:
-                    setI(oc, vx => vx * 5)
-                    return
+                    return setI(vx => vx * 5)
                 case 0x0033: {
                     const { memory, I } = state
                     const vx = Vx(oc)
                     memory[I + 2] = vx % 10
                     memory[I + 1] = ~~(vx / 10) % 10
                     memory[I] = ~~(vx / 100) % 10
-                    return
+                    return null
                 }
                 case 0x0055:
                 case 0x0065: {
@@ -232,14 +194,18 @@ export const run = (oc: number) => {
                         else memory[I + i] = V[i]
                     }
                     state.I += x + 1
-                    return
+                    return null
                 }
             }
-
-            break
-
-        default:
-            // tslint:disable-next-line:no-console
-            console.log(`invalid opcode: ${oc}!`)
     }
+    // tslint:disable-next-line:no-console
+    console.log(`invalid opcode: ${oc}!`)
+    return null
+}
+
+export const nextCommand = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
+export const run = (oc: number) => {
+    state.pc += 2
+    const delta = runOpcode(oc)
+    if (delta !== null) delta(oc)
 }
