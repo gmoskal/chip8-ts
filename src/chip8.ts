@@ -30,20 +30,15 @@ const draw = () => {
     cpu.state.isDrawing = false
 }
 
-let screenSwitcher: HTMLInputElement
-const setupSwitch = () => {
-    const v = document.getElementById("switch") as HTMLInputElement
-    if (v) screenSwitcher = v
-}
-
+let screenSwitch: HTMLInputElement
 const setupProgramLoader = () => {
     const input = document.getElementById("file") as HTMLInputElement
     if (!input) return
     input.onchange = (e: any) => {
         if (!e.target || !e.target.files || !e.target.files[0]) return
-        screenSwitcher.checked = false
+        screenSwitch.checked = false
         const reader = new FileReader()
-        reader.onload = () => init(reader.result as any)
+        reader.onload = () => init(reader.result as ArrayBuffer)
         reader.readAsArrayBuffer(e.target.files[0])
     }
 }
@@ -67,7 +62,7 @@ const setupButtons = () => {
 const init = (programBuffer: ArrayBuffer) => {
     cpu.init()
     cpu.loadProgram(new Uint8Array(programBuffer))
-    setTimeout(() => (screenSwitcher.checked = true), 500)
+    setTimeout(() => (screenSwitch.checked = true), 500)
 }
 
 const toggleKey = (pressed: boolean) => ({ key }: { key: string }) => {
@@ -84,18 +79,18 @@ const main = async () => {
     setupGraphics()
     document.addEventListener("keydown", toggleKey(true))
     document.addEventListener("keyup", toggleKey(false))
-    setupSwitch()
+    screenSwitch = document.getElementById("switch") as HTMLInputElement
     setupProgramLoader()
     setupButtons()
     const resp = await fetch("./tetris.ch8")
     init(await resp.arrayBuffer())
 
-    let currentTick = 0
+    let ticks = 0
     setInterval(() => {
-        if (screenSwitcher.checked === false) return
-        cpu.nextCommand()
+        if (screenSwitch.checked === false) return
+        cpu.runNextInstruction()
         draw()
-        if (++currentTick % 6 === 0 && cpu.state.delayTimer > 0) cpu.state.delayTimer--
+        if (++ticks % 6 === 0 && cpu.state.delayTimer > 0) cpu.state.delayTimer--
     }, 0)
 }
 

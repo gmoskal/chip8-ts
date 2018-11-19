@@ -200,7 +200,7 @@ export const runOpcode = (oc: number): ((oc: number) => void) | null => {
     return null
 }
 
-export const nextCommand = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
+export const runNextInstruction = () => run((state.memory[state.pc] << 8) | state.memory[state.pc + 1])
 export const run = (oc: number) => {
     state.pc += 2
     const delta = runOpcode(oc)
