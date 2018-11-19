@@ -1,27 +1,55 @@
 import { chars, keys, width, height } from "./consts"
 
 const getArray = (size: number): number[] => new Array(size).fill(0)
-
 export const getInitialState = () => ({
     sp: 0,
     I: 0,
     pc: 0x200,
+    V: getArray(16),
     stack: getArray(16),
     memory: new Uint8Array(new ArrayBuffer(0x1000)).fill(0),
-    keys: keys.reduce((acc, _, i) => ({ ...acc, [i]: false }), {}) as NMap<boolean>,
-    V: getArray(16),
     screen: getArray(width * height),
+    keys: keys.reduce((acc, _, i) => ({ ...acc, [i]: false }), {}) as NMap<boolean>,
     delayTimer: 0,
     soundTimer: 0,
     isDrawing: false
 })
 
 export const loadProgram = (program: Uint8Array) => program.forEach((v, i) => (state.memory[i + 0x200] = v))
+
 export let state: ReturnType<typeof getInitialState>
 export const init = (delta: Partial<typeof state> = {}) => {
     state = { ...getInitialState(), ...delta }
     state.memory.set(chars)
 }
+
+type FOc = (oc: number) => number
+const X: FOc = oc => (oc & 0x0f00) >> 8
+const Vx: FOc = oc => state.V[X(oc)]
+const Y: FOc = oc => (oc & 0x00f0) >> 4
+const Vy: FOc = oc => state.V[Y(oc)]
+const N: FOc = oc => oc & 0x000f
+const NN: FOc = oc => oc & 0x00ff
+const NNN: FOc = oc => oc & 0x0fff
+
+type FCalcVf = (vx: number, vy: number) => boolean | number
+const setVf = (calcVf: FCalcVf) => (oc: number) => (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
+
+type FCalcVx = (vx: number, vy: number) => number
+const setVx = (calcVx: FCalcVx) => (oc: number) => {
+    const x = X(oc)
+    const v = calcVx(state.V[x], Vy(oc))
+    state.V[x] = v + (v < 0 ? 256 : v > 255 ? -256 : 0)
+}
+
+const setVfVx = (calcVf: FCalcVf, calcVx: FCalcVx) => (oc: number) => {
+    setVf(calcVf)(oc)
+    setVx(calcVx)(oc)
+}
+
+const setI = (calcI: (vx: number, i: number) => number) => (oc: number) => (state.I = calcI(Vx(oc), state.I))
+const incPc = (cond: (vx: number, vy: number) => boolean) => (oc: number) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
+const onVx = (cb: (vx: number) => void) => (oc: number) => cb(Vx(oc))
 
 const updatePixel = (x: number, y: number) => {
     x += x < 0 ? width : x > width ? -width : 0
@@ -30,31 +58,6 @@ const updatePixel = (x: number, y: number) => {
     state.screen[i] ^= 1
     return !state.screen[i]
 }
-
-const X = (oc: number) => (oc & 0x0f00) >> 8
-const Vx = (oc: number) => state.V[X(oc)]
-const Y = (oc: number) => (oc & 0x00f0) >> 4
-const Vy = (oc: number) => state.V[Y(oc)]
-const N = (oc: number) => oc & 0x000f
-const NN = (oc: number) => oc & 0x00ff
-const NNN = (oc: number) => oc & 0x0fff
-
-type CalcVf = (vx: number, vy: number) => boolean | number
-const setVf = (calcVf: CalcVf) => (oc: number) => (state.V[0xf] = +calcVf(Vx(oc), Vy(oc)))
-type CalcVx = (vx: number, vy: number) => number
-const setVx = (calcVx: CalcVx) => (oc: number) => {
-    const x = X(oc)
-    const v = calcVx(state.V[x], Vy(oc))
-    state.V[x] = v + (v < 0 ? 256 : v > 255 ? -256 : 0)
-}
-const setVfVx = (calcVf: CalcVf, calcVx: CalcVx) => (oc: number) => {
-    setVf(calcVf)(oc)
-    setVx(calcVx)(oc)
-}
-
-const setI = (calcI: (vx: number, i: number) => number) => (oc: number) => (state.I = calcI(Vx(oc), state.I))
-
-const incPc = (cond: (vx: number, vy: number) => boolean) => (oc: number) => (state.pc += cond(Vx(oc), Vy(oc)) ? 2 : 0)
 
 const draw = (oc: number) => {
     const { I, V, memory } = state
@@ -95,14 +98,12 @@ export const runOpcode = (oc: number): ((oc: number) => void) | null => {
                     state.sp--
                     state.pc = state.stack[state.sp]
                     break
-                default:
-                    state.pc = NNN(oc)
             }
             return null
-        case 0x1000: // GOTO NNN
+        case 0x1000:
             state.pc = NNN(oc)
             return null
-        case 0x2000: // CALL
+        case 0x2000:
             state.stack[state.sp] = state.pc
             state.sp++
             state.pc = NNN(oc)
@@ -119,7 +120,7 @@ export const runOpcode = (oc: number): ((oc: number) => void) | null => {
             return setVx(vx => vx + NN(oc))
         case 0x8000:
             switch (oc & 0x000f) {
-                case 0x0000: // Sets VX to the value of VY.
+                case 0x0000:
                     return setVx((_, vy) => vy)
                 case 0x0001:
                     return setVx((vx, vy) => vx | vy)
@@ -165,30 +166,26 @@ export const runOpcode = (oc: number): ((oc: number) => void) | null => {
                 case 0x000a:
                     return setKey
                 case 0x0015:
-                    state.delayTimer = Vx(oc)
-                    return null
+                    return onVx(vx => (state.delayTimer = vx))
                 case 0x0018:
-                    state.soundTimer = Vx(oc)
-                    return null
+                    return onVx(vx => (state.soundTimer = vx))
                 case 0x001e:
-                    // Undocumented overflow feature of the CHIP-8 used by the Spacefight 2091! game
-                    state.V[0xf] = +(state.I + Vx(oc) > 0xfff)
+                    setVf(vx => state.I + vx > 0xfff)(oc) // Undocumented overflow feature for Spacefight 2091! game
                     return setI((vx, i) => vx + i)
                 case 0x0029:
                     return setI(vx => vx * 5)
-                case 0x0033: {
-                    const { memory, I } = state
-                    const vx = Vx(oc)
-                    memory[I + 2] = vx % 10
-                    memory[I + 1] = ~~(vx / 10) % 10
-                    memory[I] = ~~(vx / 100) % 10
-                    return null
-                }
+                case 0x0033:
+                    return onVx(vx => {
+                        const { I, memory } = state
+                        memory[I + 2] = vx % 10
+                        memory[I + 1] = ~~(vx / 10) % 10
+                        memory[I] = ~~(vx / 100) % 10
+                    })
                 case 0x0055:
                 case 0x0065: {
                     const x = X(oc)
-                    const { memory, V, I } = state
                     const restore = (oc & 0x00ff) === 0x0065
+                    const { memory, V, I } = state
                     for (let i = 0; i <= x; i++) {
                         if (restore) V[i] = memory[I + i]
                         else memory[I + i] = V[i]
@@ -199,7 +196,7 @@ export const runOpcode = (oc: number): ((oc: number) => void) | null => {
             }
     }
     // tslint:disable-next-line:no-console
-    console.log(`invalid opcode: ${oc}!`)
+    console.log(`invalid opcode: ${oc.toString(16)}!`)
     return null
 }
 

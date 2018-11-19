@@ -95,7 +95,10 @@ const main = async () => {
         if (screenSwitcher.checked === false) return
         cpu.nextCommand()
         draw()
-        if (++currentTick % 6 === 0 && cpu.state.delayTimer > 0) cpu.state.delayTimer--
+
+        if (++currentTick % 6 === 0 && cpu.state.delayTimer > 0) {
+            cpu.state.delayTimer--
+        }
     }, 0)
 }
 
