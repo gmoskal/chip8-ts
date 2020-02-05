@@ -13,7 +13,7 @@ then visit http://localhost:3500/
 
 ## Online demo
 
-Github page with last build can be found [here](https://grzegorzmoskal.github.io/chip8-ts/)
+Github page with last build can be found [here](https://gmoskal.github.io/chip8-ts/)
 
 
 ![Fetched data](rec.gif)
